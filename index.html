@@ -99,7 +99,7 @@
   var clock = new THREE.Clock();
 
   const imgData = [];
-  const MAX_SLICE = 40;
+  const NUM_SLICES = 9;
   let width, height;
 
   init();
@@ -224,14 +224,14 @@
 
     // LOAD IMAGES
 
-    let idx = 0;
+    let idx = 1;
 
     const img = new Image();
     const canvas = document.createElement("canvas");
 
     function loadNext() {
-      const padded = String(idx).padStart(3, '0');
-      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/0070_emma_RN_cine.con-sl09-fr'+padded+'.png';
+      // const padded = String(idx).padStart(3, '0');
+      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/0070_emma_RN_cine.con-sl0'+idx+'-fr000.png';
     }
 
     img.onload = function() {
@@ -243,7 +243,7 @@
       imgData.push(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
 
       idx++;
-      if (idx < MAX_SLICE) {
+      if (idx < NUM_SLICES) {
         loadNext();
       }
     };
@@ -536,7 +536,7 @@
 
     h.add(effectController, "speed", 0, 8.0, 0.05);
     h.add(effectController, "resolution", 14, 100, 1);
-    h.add(effectController, "isolation", 10, 300, 1);
+    h.add(effectController, "isolation", 1, 300, 1);
 
     // rendering
 
@@ -561,7 +561,7 @@
     var i, subtract, strength;
 
     subtract = 5;
-    strength = 0.005;
+    strength = 0.01;
 
     for (let z = 0; z < imgData.length; z++) {
       const data = imgData[z];
@@ -569,7 +569,13 @@
         for (let x = 0; x < width; x++) {
           const val = data[(x + y * width) * 4];
           if (data[(x + y * width) * 4]) {
-            object.addBall(x / width, (z + 4) / (MAX_SLICE + 8), y / height, strength, subtract);
+            const px = x / width;
+            const py = y / height;
+            const divisor = (NUM_SLICES * 2 + 8);
+            const pz1 = (z * 2 + 4) / divisor;
+            const pz2 = (z * 2 + 5) / divisor;
+            object.addBall(px, pz1, py, strength, subtract);
+            object.addBall(px, pz2, py, strength, subtract);
           }
         }
       }
