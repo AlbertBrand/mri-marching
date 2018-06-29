@@ -224,6 +224,10 @@
 
     // LOAD IMAGES
 
+    const query = window.location.search.substring(1);
+    let path = '/mri/';
+    path += query !== '' ? query : 'myo2';
+
     let idx = 0;
 
     const img = new Image();
@@ -231,7 +235,7 @@
 
     function loadNext() {
       const padded = String(idx).padStart(3, '0');
-      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/fr' + padded + '.png';
+      img.src = path + '/fr' + padded + '.png';
     }
 
     img.onload = function () {
