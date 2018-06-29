@@ -48,6 +48,7 @@
 <body>
 
 <div id="container"></div>
+<div id="info">Loading...</div>
 
 <script src="js/libs/three.js"></script>
 
@@ -85,7 +86,7 @@
 
   var camera, scene, renderer;
 
-  var mesh, texture, geometry, materials, material, current_material;
+  var texture, geometry, materials, material, current_material;
 
   var light, pointLight, ambientLight;
 
@@ -98,8 +99,8 @@
   var time = 0;
   var clock = new THREE.Clock();
 
-  const imgFrames = [];
-  const NUM_FRAMES = 1;
+  const frameMeshes = [];
+  const NUM_FRAMES = 40;
   const NUM_SLICES = 9;
   let width, height;
 
@@ -230,16 +231,28 @@
 
     function loadNext() {
       const padded = String(idx).padStart(3, '0');
-      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/fr'+padded+'.png';
+      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/fr' + padded + '.png';
     }
 
-    img.onload = function() {
+    img.onload = function () {
+      document.getElementById("info").textContent = 'Loading ' + (idx + 1) + ' of ' + NUM_FRAMES + ' frames';
+
       canvas.width = width = img.width;
       canvas.height = height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
 
-      imgFrames.push(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const geometry = calculateGeometry(data);
+
+      mesh = new THREE.Mesh(
+          geometry,
+          effect.material
+      );
+      mesh.scale.set(700, 700, 700);
+      mesh.visible = false;
+      scene.add(mesh);
+      frameMeshes.push(mesh);
 
       idx++;
       if (idx < NUM_FRAMES) {
@@ -248,6 +261,39 @@
     };
 
     loadNext();
+  }
+
+  // this controls content of marching cubes voxel field
+
+  function calculateGeometry(data) {
+    effect.reset();
+
+    // fill the field with 2 stacked metaballs per pixel in data
+
+    const subtract = 5, strength = 0.01;
+
+    // assume
+    // - square slices (1 slice width == height)
+    // - NUM_SLICES slices placed vertically in frame data
+
+    for (let si = 0; si < NUM_SLICES; si++) {
+      for (let sy = 0; sy < height; sy++) {
+        for (let sx = 0; sx < width; sx++) {
+          if (data[(sx + sy * width + si * width * width) * 4]) {
+            const x = sx / width;
+            const z = (width - sy) / width;
+            const dividend = (NUM_SLICES - si) * 2 + 4;
+            const divisor = NUM_SLICES * 2 + 8;
+            const y1 = dividend / divisor;
+            const y2 = (dividend + 1) / divisor;
+            effect.addBall(x, y1, z, strength, subtract);
+            effect.addBall(x, y2, z, strength, subtract);
+          }
+        }
+      }
+    }
+
+    return effect.generateBufferGeometry();
   }
 
   //
@@ -467,8 +513,8 @@
 
       material: "matte",
 
-      speed: 0,
-      resolution: 100,
+      speed: 10,
+      resolution: 70,
       isolation: 100,
 
       hue: 0.0,
@@ -496,22 +542,22 @@
 
     // material (type)
 
-    h = gui.addFolder("Materials");
-
-    for (var m in materials) {
-
-      effectController[m] = createHandler(m);
-      h.add(effectController, m).name(m);
-
-    }
-
-    // material (color)
-
-    h = gui.addFolder("Material color");
-
-    m_h = h.add(effectController, "hue", 0.0, 1.0, 0.025);
-    m_s = h.add(effectController, "saturation", 0.0, 1.0, 0.025);
-    m_l = h.add(effectController, "lightness", 0.0, 1.0, 0.025);
+    // h = gui.addFolder("Materials");
+    //
+    // for (var m in materials) {
+    //
+    //   effectController[m] = createHandler(m);
+    //   h.add(effectController, m).name(m);
+    //
+    // }
+    //
+    // // material (color)
+    //
+    // h = gui.addFolder("Material color");
+    //
+    // m_h = h.add(effectController, "hue", 0.0, 1.0, 0.025);
+    // m_s = h.add(effectController, "saturation", 0.0, 1.0, 0.025);
+    // m_l = h.add(effectController, "lightness", 0.0, 1.0, 0.025);
 
     // light (point)
 
@@ -533,55 +579,15 @@
 
     h = gui.addFolder("Simulation");
 
-    h.add(effectController, "speed", 0, 8.0, 0.05);
-    h.add(effectController, "resolution", 14, 100, 1);
-    h.add(effectController, "isolation", 1, 300, 1);
+    h.add(effectController, "speed", 10, 100, 1);
+    // h.add(effectController, "resolution", 14, 100, 1);
+    // h.add(effectController, "isolation", 1, 300, 1);
 
     // rendering
 
     h = gui.addFolder("Rendering");
     h.add(effectController, "postprocessing");
 
-  }
-
-  // this controls content of marching cubes voxel field
-
-  function updateCubes(object) {
-
-    object.reset();
-
-    if (!imgFrames.length) {
-      // nothing to draw yet
-      return false;
-    }
-
-    // fill the field with 2 stacked metaballs per pixel in data
-
-    const subtract = 5, strength = 0.01;
-
-    // assume
-    // - square slices (1 slice width == height)
-    // - NUM_SLICES slices placed vertically in frame data
-    const data = imgFrames[0];
-
-    for (let si = 0; si < NUM_SLICES; si++) {
-      for (let sy = 0; sy < height; sy++) {
-        for (let sx = 0; sx < width; sx++) {
-          if (data[(sx + sy * width + si * width * width) * 4]) {
-            const x = sx / width;
-            const z = (width - sy) / width;
-            const dividend = (NUM_SLICES - si) * 2 + 4;
-            const divisor = NUM_SLICES * 2 + 8;
-            const y1 = dividend / divisor;
-            const y2 = (dividend + 1) / divisor;
-            object.addBall(x, y1, z, strength, subtract);
-            object.addBall(x, y2, z, strength, subtract);
-          }
-        }
-      }
-    }
-
-    return true;
   }
 
   //
@@ -600,7 +606,7 @@
 
     var delta = clock.getDelta();
 
-    time += delta * effectController.speed * 0.5;
+    time += delta * effectController.speed;
 
     // marching cubes
 
@@ -615,6 +621,12 @@
 
       effect.isolation = effectController.isolation;
 
+    }
+
+    if (frameMeshes.length === NUM_FRAMES) {
+      frameMeshes.forEach(mesh => mesh.visible = false);
+      const frame = Math.floor(time % NUM_FRAMES);
+      frameMeshes[frame].visible = true;
     }
 
     // materials
@@ -644,20 +656,6 @@
 
       effect.material.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
 
-    }
-
-    // geometry
-
-    if (!geometry && updateCubes(effect)) {
-      geometry = effect.generateBufferGeometry();
-
-      mesh = new THREE.Mesh(
-          geometry,
-          effect.material
-      );
-
-      mesh.scale.set(700, 700, 700);
-      scene.add( mesh );
     }
 
     // lights
