@@ -517,123 +517,6 @@ THREE.MarchingCubes = function ( resolution, material, enableUvs, enableColors )
 
 	};
 
-	this.addPlaneX = function ( strength, subtract ) {
-
-		var x, y, z, xx, val, xdiv, cxy,
-
-			// cache attribute lookups
-			size = this.size,
-			yd = this.yd,
-			zd = this.zd,
-			field = this.field,
-
-			dist = size * Math.sqrt( strength / subtract );
-
-		if ( dist > size ) dist = size;
-
-		for ( x = 0; x < dist; x ++ ) {
-
-			xdiv = x / size;
-			xx = xdiv * xdiv;
-			val = strength / ( 0.0001 + xx ) - subtract;
-
-			if ( val > 0.0 ) {
-
-				for ( y = 0; y < size; y ++ ) {
-
-					cxy = x + y * yd;
-
-					for ( z = 0; z < size; z ++ ) {
-
-						field[ zd * z + cxy ] += val;
-
-					}
-
-				}
-
-			}
-
-		}
-
-	};
-
-	this.addPlaneY = function ( strength, subtract ) {
-
-		var x, y, z, yy, val, ydiv, cy, cxy,
-
-			// cache attribute lookups
-			size = this.size,
-			yd = this.yd,
-			zd = this.zd,
-			field = this.field,
-
-			dist = size * Math.sqrt( strength / subtract );
-
-		if ( dist > size ) dist = size;
-
-		for ( y = 0; y < dist; y ++ ) {
-
-			ydiv = y / size;
-			yy = ydiv * ydiv;
-			val = strength / ( 0.0001 + yy ) - subtract;
-
-			if ( val > 0.0 ) {
-
-				cy = y * yd;
-
-				for ( x = 0; x < size; x ++ ) {
-
-					cxy = cy + x;
-
-					for ( z = 0; z < size; z ++ )
-						field[ zd * z + cxy ] += val;
-
-				}
-
-			}
-
-		}
-
-	};
-
-	this.addPlaneZ = function ( strength, subtract ) {
-
-		var x, y, z, zz, val, zdiv, cz, cyz,
-
-			// cache attribute lookups
-			size = this.size,
-			yd = this.yd,
-			zd = this.zd,
-			field = this.field,
-
-			dist = size * Math.sqrt( strength / subtract );
-
-		if ( dist > size ) dist = size;
-
-		for ( z = 0; z < dist; z ++ ) {
-
-			zdiv = z / size;
-			zz = zdiv * zdiv;
-			val = strength / ( 0.0001 + zz ) - subtract;
-			if ( val > 0.0 ) {
-
-				cz = zd * z;
-
-				for ( y = 0; y < size; y ++ ) {
-
-					cyz = cz + y * yd;
-
-					for ( x = 0; x < size; x ++ )
-						field[ cyz + x ] += val;
-
-				}
-
-			}
-
-		}
-
-	};
-
 	/////////////////////////////////////
 	// Updates
 	/////////////////////////////////////
@@ -685,13 +568,6 @@ THREE.MarchingCubes = function ( resolution, material, enableUvs, enableColors )
 		}
 
 		this.end( renderCallback );
-
-	};
-
-	this.generateGeometry = function () {
-
-		console.warn( 'THREE.MarchingCubes: generateGeometry() now returns THREE.BufferGeometry' );
-		return this.generateBufferGeometry();
 
 	};
 

@@ -98,7 +98,8 @@
   var time = 0;
   var clock = new THREE.Clock();
 
-  const imgData = [];
+  const imgFrames = [];
+  const NUM_FRAMES = 1;
   const NUM_SLICES = 9;
   let width, height;
 
@@ -112,7 +113,7 @@
     // CAMERA
 
     camera = new THREE.PerspectiveCamera(45, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000);
-    camera.position.set(1500, 1500, 0);
+    camera.position.set(0, 1000, 1500);
 
     // SCENE
 
@@ -224,14 +225,14 @@
 
     // LOAD IMAGES
 
-    let idx = 1;
+    let idx = 0;
 
     const img = new Image();
     const canvas = document.createElement("canvas");
 
     function loadNext() {
-      // const padded = String(idx).padStart(3, '0');
-      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/0070_emma_RN_cine.con-sl0'+idx+'-fr000.png';
+      const padded = String(idx).padStart(3, '0');
+      img.src = '/mri/predicted_overlays_post_process_model_UMCG_myo2/fr'+padded+'.png';
     }
 
     img.onload = function() {
@@ -240,10 +241,10 @@
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
 
-      imgData.push(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
+      imgFrames.push(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
 
       idx++;
-      if (idx < NUM_SLICES) {
+      if (idx < NUM_FRAMES) {
         loadNext();
       }
     };
@@ -547,39 +548,42 @@
 
   // this controls content of marching cubes voxel field
 
-  function updateCubes(object, time) {
+  function updateCubes(object) {
 
     object.reset();
 
-    if (!imgData.length) {
+    if (!imgFrames.length) {
       // nothing to draw yet
-      return;
+      return false;
     }
 
-    // fill the field with some metaballs
+    // fill the field with 2 stacked metaballs per pixel in data
 
-    var i, subtract, strength;
+    const subtract = 5, strength = 0.01;
 
-    subtract = 5;
-    strength = 0.01;
+    // assume
+    // - square slices (1 slice width == height)
+    // - NUM_SLICES slices placed vertically in frame data
+    const data = imgFrames[0];
 
-    for (let z = 0; z < imgData.length; z++) {
-      const data = imgData[z];
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const val = data[(x + y * width) * 4];
-          if (data[(x + y * width) * 4]) {
-            const px = x / width;
-            const py = y / height;
-            const divisor = (NUM_SLICES * 2 + 8);
-            const pz1 = (z * 2 + 4) / divisor;
-            const pz2 = (z * 2 + 5) / divisor;
-            object.addBall(px, pz1, py, strength, subtract);
-            object.addBall(px, pz2, py, strength, subtract);
+    for (let si = 0; si < NUM_SLICES; si++) {
+      for (let sy = 0; sy < height; sy++) {
+        for (let sx = 0; sx < width; sx++) {
+          if (data[(sx + sy * width + si * width * width) * 4]) {
+            const x = sx / width;
+            const z = (width - sy) / width;
+            const dividend = (NUM_SLICES - si) * 2 + 4;
+            const divisor = NUM_SLICES * 2 + 8;
+            const y1 = dividend / divisor;
+            const y2 = (dividend + 1) / divisor;
+            object.addBall(x, y1, z, strength, subtract);
+            object.addBall(x, y2, z, strength, subtract);
           }
         }
       }
     }
+
+    return true;
   }
 
   //
@@ -645,6 +649,19 @@
       effect.material.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
 
     }
+
+    // geometry
+
+    // if (!geometry && updateCubes(effect)) {
+    //   geometry = effect.generateBufferGeometry();
+    //
+    //   mesh = new THREE.Mesh(
+    //       geometry,
+    //       // effect.material
+    //   );
+    //
+    //   scene.add( mesh );
+    // }
 
     // lights
 
