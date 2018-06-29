@@ -49,7 +49,7 @@
 
 <div id="container"></div>
 
-<script src="js/libs/three.min.js"></script>
+<script src="js/libs/three.js"></script>
 
 <script src="js/controls/OrbitControls.js"></script>
 
@@ -146,8 +146,6 @@
 
     effect.enableUvs = false;
     effect.enableColors = false;
-
-    scene.add(effect);
 
     // RENDERER
 
@@ -470,7 +468,7 @@
       material: "matte",
 
       speed: 0,
-      resolution: 70,
+      resolution: 100,
       isolation: 100,
 
       hue: 0.0,
@@ -619,8 +617,6 @@
 
     }
 
-    updateCubes(effect, time);
-
     // materials
 
     if (effect.material instanceof THREE.ShaderMaterial) {
@@ -652,16 +648,17 @@
 
     // geometry
 
-    // if (!geometry && updateCubes(effect)) {
-    //   geometry = effect.generateBufferGeometry();
-    //
-    //   mesh = new THREE.Mesh(
-    //       geometry,
-    //       // effect.material
-    //   );
-    //
-    //   scene.add( mesh );
-    // }
+    if (!geometry && updateCubes(effect)) {
+      geometry = effect.generateBufferGeometry();
+
+      mesh = new THREE.Mesh(
+          geometry,
+          effect.material
+      );
+
+      mesh.scale.set(700, 700, 700);
+      scene.add( mesh );
+    }
 
     // lights
 
