@@ -90,7 +90,7 @@
 
   var light, pointLight, ambientLight;
 
-  var effect, resolution;
+  var mcRed, mcBlue, mcGreen, resolution;
 
   var composer, effectFXAA, hblur, vblur;
 
@@ -100,9 +100,10 @@
   var clock = new THREE.Clock();
 
   const frameMeshes = [];
+  const SLICE_WIDTH = 184;
+  const SLICE_HEIGHT = 184;
   const NUM_FRAMES = 40;
   const NUM_SLICES = 9;
-  let width, height;
 
   init();
   animate();
@@ -141,12 +142,9 @@
 
     // MARCHING CUBES
 
-    effect = new THREE.MarchingCubes(resolution, materials[current_material].m, true, true);
-    effect.position.set(0, 0, 0);
-    effect.scale.set(700, 700, 700);
-
-    effect.enableUvs = false;
-    effect.enableColors = false;
+    mcRed = new THREE.MarchingCubes(resolution, materials[current_material].m);
+    mcBlue = new THREE.MarchingCubes(resolution, materials[current_material].m);
+    mcGreen = new THREE.MarchingCubes(resolution, materials[current_material].m);
 
     // RENDERER
 
@@ -222,82 +220,95 @@
 
     window.addEventListener('resize', onWindowResize, false);
 
-    // LOAD IMAGES
+    // LOAD IMAGEDATA
 
     const query = window.location.search.substring(1);
     let path = '/mri/';
-    path += query !== '' ? query : 'myo2';
-
-    let idx = 0;
+    path += query !== '' ? query : 'model_1.png';
 
     const img = new Image();
     const canvas = document.createElement("canvas");
-
-    function loadNext() {
-      const padded = String(idx).padStart(3, '0');
-      img.src = path + '/fr' + padded + '.png';
-    }
+    img.src = path;
+    document.getElementById("info").textContent = 'Loading...';
 
     img.onload = function () {
-      document.getElementById("info").textContent = 'Loading ' + (idx + 1) + ' of ' + NUM_FRAMES + ' frames';
-
-      canvas.width = width = img.width;
-      canvas.height = height = img.height;
+      canvas.width = img.width;
+      canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
 
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      const geometry = calculateGeometry(data);
+      calculateGeometry(ctx);
 
-      mesh = new THREE.Mesh(
-          geometry,
-          effect.material
-      );
-      mesh.scale.set(700, 700, 700);
-      mesh.visible = false;
-      scene.add(mesh);
-      frameMeshes.push(mesh);
-
-      idx++;
-      if (idx < NUM_FRAMES) {
-        loadNext();
-      }
+      document.getElementById("info").style.display = 'none';
     };
-
-    loadNext();
   }
 
   // this controls content of marching cubes voxel field
 
-  function calculateGeometry(data) {
-    effect.reset();
-
-    // fill the field with 2 stacked metaballs per pixel in data
+  function calculateGeometry(imgCtx) {
+    // assume
+    // - slices are laid out horizontally, frames vertically
+    // - slice is of dimension SLICE_WIDTH x SLICE_HEIGHT
 
     const subtract = 5, strength = 0.01;
 
-    // assume
-    // - square slices (1 slice width == height)
-    // - NUM_SLICES slices placed vertically in frame data
+    for (let sf = 0; sf < NUM_FRAMES; sf++) {
+      mcRed.reset();
+      mcBlue.reset();
+      mcGreen.reset();
 
-    for (let si = 0; si < NUM_SLICES; si++) {
-      for (let sy = 0; sy < height; sy++) {
-        for (let sx = 0; sx < width; sx++) {
-          if (data[(sx + sy * width + si * width * width) * 4]) {
-            const x = sx / width;
-            const z = (width - sy) / width;
-            const dividend = (NUM_SLICES - si) * 2 + 4;
-            const divisor = NUM_SLICES * 2 + 8;
-            const y1 = dividend / divisor;
-            const y2 = (dividend + 1) / divisor;
-            effect.addBall(x, y1, z, strength, subtract);
-            effect.addBall(x, y2, z, strength, subtract);
+      for (let si = 0; si < NUM_SLICES; si++) {
+        const data = imgCtx.getImageData(sf * SLICE_WIDTH, si * SLICE_HEIGHT, SLICE_WIDTH, SLICE_HEIGHT).data;
+
+        for (let sy = 0; sy < SLICE_HEIGHT; sy++) {
+          for (let sx = 0; sx < SLICE_WIDTH; sx++) {
+            const offset = (sx + sy * SLICE_WIDTH) * 4;
+            const red = data[offset];
+            const blue = data[offset + 1];
+            const green = data[offset + 2];
+            if (blue || green || red) {
+              const x = sx / SLICE_WIDTH;
+              const z = (SLICE_WIDTH - sy) / SLICE_WIDTH;
+              const dividend = (NUM_SLICES - si) * 2 + 4; // add extra offset
+              const divisor = NUM_SLICES * 2 + 8; // add extra offset
+              const y1 = dividend / divisor;
+              const y2 = (dividend + 1) / divisor;
+
+              let mc;
+              if (red) {
+                mc = mcRed;
+              } else if (green) {
+                mc = mcGreen;
+              } else if (blue) {
+                mc = mcBlue;
+              }
+
+              // stack 2 metaballs per pixel
+              mc.addBall(x, y1, z, strength, subtract);
+              mc.addBall(x, y2, z, strength, subtract);
+            }
           }
         }
       }
-    }
 
-    return effect.generateBufferGeometry();
+      const redMesh = new THREE.Mesh(mcRed.generateBufferGeometry(), mcRed.material);
+      redMesh.scale.set(700, 700, 700);
+      redMesh.visible = false;
+      scene.add(redMesh);
+
+      const greenMesh = new THREE.Mesh(mcGreen.generateBufferGeometry(), mcRed.material);
+      greenMesh.scale.set(700, 700, 700);
+      greenMesh.visible = false;
+      scene.add(greenMesh);
+
+      const blueMesh = new THREE.Mesh(mcBlue.generateBufferGeometry(), mcRed.material);
+      blueMesh.scale.set(700, 700, 700);
+      blueMesh.visible = false;
+      scene.add(blueMesh);
+
+      frameMeshes.push([redMesh, greenMesh, blueMesh]);
+      document.getElementById("info").textContent = 'Loading...';
+    }
   }
 
   //
@@ -389,7 +400,7 @@
 
       "matte":
           {
-            m: new THREE.MeshPhongMaterial({color: 0x000000, specular: 0x111111, shininess: 1}),
+            m: new THREE.MeshPhongMaterial({color: 0x000000, specular: 0x111111, shininess: 1, transparent: true, opacity: 0.5}),
             h: 0, s: 0, l: 1
           },
 
@@ -500,14 +511,21 @@
         current_material = id;
 
         var mat = materials[id];
-        effect.material = mat.m;
+        mcRed.material = mat.m;
+        mcGreen.material = mat.m;
+        mcBlue.material = mat.m;
 
         m_h.setValue(mat.h);
         m_s.setValue(mat.s);
         m_l.setValue(mat.l);
 
-        effect.enableUvs = (current_material === "textured") ? true : false;
-        effect.enableColors = (current_material === "colors") ? true : false;
+        mcRed.enableUvs = (current_material === "textured");
+        mcGreen.enableUvs = (current_material === "textured");
+        mcBlue.enableUvs = (current_material === "textured");
+
+        mcRed.enableColors = (current_material === "colors");
+        mcGreen.enableColors = (current_material === "colors");
+        mcBlue.enableColors = (current_material === "colors");
 
       };
 
@@ -616,51 +634,63 @@
 
     if (effectController.resolution !== resolution) {
 
-      resolution = effectController.resolution;
-      effect.init(Math.floor(resolution));
+      resolution = Math.floor(effectController.resolution);
+      mcRed.init(resolution);
+      mcGreen.init(resolution);
+      mcBlue.init(resolution);
 
     }
 
-    if (effectController.isolation !== effect.isolation) {
+    if (effectController.isolation !== mcRed.isolation) {
 
-      effect.isolation = effectController.isolation;
+      mcRed.isolation = effectController.isolation;
+      mcGreen.isolation = effectController.isolation;
+      mcBlue.isolation = effectController.isolation;
 
     }
 
     if (frameMeshes.length === NUM_FRAMES) {
-      frameMeshes.forEach(mesh => mesh.visible = false);
+      frameMeshes.forEach(mesh => {
+        mesh[0].visible = false;
+        mesh[1].visible = false;
+        mesh[2].visible = false;
+      });
       const frame = Math.floor(time % NUM_FRAMES);
-      frameMeshes[frame].visible = true;
+      frameMeshes[frame][0].visible = true;
+      frameMeshes[frame][1].visible = true;
+      frameMeshes[frame][2].visible = true;
     }
 
     // materials
 
-    if (effect.material instanceof THREE.ShaderMaterial) {
+    // if (effect.material instanceof THREE.ShaderMaterial) {
+    //
+    //   if (current_material === "dotted2") {
+    //
+    //     effect.material.uniforms.uLineColor1.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    //
+    //   } else if (current_material === "hatching2") {
+    //
+    //     var u = effect.material.uniforms;
+    //
+    //     u.uLineColor1.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    //     u.uLineColor2.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    //     u.uLineColor3.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    //     u.uLineColor4.value.setHSL((effectController.hue + 0.2 % 1.0), effectController.saturation, effectController.lightness);
+    //
+    //   } else {
+    //
+    //     effect.material.uniforms.uBaseColor.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    //
+    //   }
+    //
+    // } else {
 
-      if (current_material === "dotted2") {
+    mcRed.material.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    mcGreen.material.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
+    mcBlue.material.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
 
-        effect.material.uniforms.uLineColor1.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
-
-      } else if (current_material === "hatching2") {
-
-        var u = effect.material.uniforms;
-
-        u.uLineColor1.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
-        u.uLineColor2.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
-        u.uLineColor3.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
-        u.uLineColor4.value.setHSL((effectController.hue + 0.2 % 1.0), effectController.saturation, effectController.lightness);
-
-      } else {
-
-        effect.material.uniforms.uBaseColor.value.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
-
-      }
-
-    } else {
-
-      effect.material.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness);
-
-    }
+    // }
 
     // lights
 
