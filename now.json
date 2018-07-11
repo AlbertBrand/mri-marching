@@ -1,0 +1,10 @@
+{
+  "name": "mri-marching",
+  "alias": "mri-marching",
+  "public": true,
+  "files": [
+    "js",
+    "mri",
+    "index.html"
+  ]
+}
