@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Scene loader</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            color: #fff;
+            font-family: Monospace;
+            font-size: 13px;
+            text-align: center;
+
+            background-color: #000;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #ffffff;
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 5px;
+        }
+
+        a {
+            color: gold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="container"></div>
+<div id="info">Loading...</div>
+
+<script src="js/libs/three.js"></script>
+<script src="js/controls/OrbitControls.js"></script>
+<script src="js/loaders/GLTFLoader.js"></script>
+
+<script src="js/libs/Detector.js"></script>
+<script src="js/libs/stats.min.js"></script>
+
+<script>
+  if (!Detector.webgl) Detector.addGetWebGLMessage();
+
+  var MARGIN = 0;
+
+  var SCREEN_WIDTH = window.innerWidth;
+  var SCREEN_HEIGHT = window.innerHeight - 2 * MARGIN;
+
+  var container, stats;
+
+  var camera, scene, renderer;
+
+  var light, pointLight, ambientLight;
+
+  init();
+  animate();
+
+  function init() {
+    container = document.getElementById('container');
+
+    // CAMERA
+
+    camera = new THREE.PerspectiveCamera(45, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000);
+    camera.position.set(0, 10, 15);
+
+    // LOAD SCENE
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+
+    const loader = new THREE.GLTFLoader();
+    loader.load('scenes/scene_1.gltf.json',
+        gltf => {
+          scene.add(gltf.scene);
+
+          // gltf.animations; // Array<THREE.AnimationClip>
+          // gltf.scene; // THREE.Scene
+          // gltf.scenes; // Array<THREE.Scene>
+          // gltf.cameras; // Array<THREE.Camera>
+          // gltf.asset; // Object
+
+        },
+        xhr => {
+          document.getElementById("info").innerHTML = (xhr.loaded / xhr.total * 100) + '% loaded';
+        },
+        error => {
+          console.log('A load error happened', error);
+        }
+    );
+
+    // LIGHTS
+
+    light = new THREE.DirectionalLight(0xffffff);
+    light.position.set(0.5, 0.5, 1);
+    scene.add(light);
+
+    pointLight = new THREE.PointLight(0xff3300);
+    pointLight.position.set(0, 0, 100);
+    scene.add(pointLight);
+
+    ambientLight = new THREE.AmbientLight(0x080808);
+    scene.add(ambientLight);
+
+    // RENDERER
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.top = MARGIN + "px";
+    renderer.domElement.style.left = "0px";
+
+    container.appendChild(renderer.domElement);
+
+    //
+
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    // CONTROLS
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    // STATS
+
+    stats = new Stats();
+    container.appendChild(stats.dom);
+
+    // EVENTS
+
+    window.addEventListener('resize', onWindowResize, false);
+  }
+
+  //
+
+  function onWindowResize(event) {
+    SCREEN_WIDTH = window.innerWidth;
+    SCREEN_HEIGHT = window.innerHeight - 2 * MARGIN;
+
+    camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+  }
+
+  //
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    render();
+    stats.update();
+  }
+
+  function render() {
+    renderer.clear();
+    renderer.render(scene, camera);
+  }
+
+</script>
+
+</body>
+</html>
