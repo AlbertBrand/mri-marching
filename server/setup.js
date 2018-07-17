@@ -7,4 +7,3 @@ global.window = {
 global.Blob = dom.window.Blob;
 
 global.THREE = require('three');
-require('three/examples/js/exporters/GLTFExporter');

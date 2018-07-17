@@ -8,6 +8,7 @@
   "private": true,
   "dependencies": {
     "jsdom": "11.11.0",
+    "pngjs": "3.3.3",
     "three": "0.94.0"
   },
   "devDependencies": {

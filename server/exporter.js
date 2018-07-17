@@ -1,4 +1,5 @@
 require('./setup');
+require('three/examples/js/exporters/GLTFExporter');
 
 const gltfExporter = new THREE.GLTFExporter();
 
