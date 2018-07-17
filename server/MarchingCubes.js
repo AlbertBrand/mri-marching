@@ -4,7 +4,7 @@
  * Port of http://webglsamples.org/blob/blob.html
  */
 
-THREE.MarchingCubes = function ( resolution, material, enableUvs, enableColors ) {
+THREE.MarchingCubes = function ( resolution, isolation, material, enableUvs, enableColors ) {
 
 	THREE.ImmediateRenderObject.call( this, material );
 
@@ -22,13 +22,13 @@ THREE.MarchingCubes = function ( resolution, material, enableUvs, enableColors )
 	// prototype functions kill performance
 	// (tested and it was 4x slower !!!)
 
-	this.init = function ( resolution ) {
+	this.init = function ( resolution, isolation ) {
 
 		this.resolution = resolution;
 
 		// parameters
 
-		this.isolation = 80.0;
+		this.isolation = isolation;
 
 		// size of field, 32 is pushing it in Javascript :)
 
@@ -611,7 +611,7 @@ THREE.MarchingCubes = function ( resolution, material, enableUvs, enableColors )
 
 	};
 
-	this.init( resolution );
+	this.init( resolution, isolation );
 
 };
 

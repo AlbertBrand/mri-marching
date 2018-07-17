@@ -4,8 +4,9 @@ require('./setup');
 require('./MarchingCubes');
 
 const RESOLUTION = 40;
-const SUBTRACT = 2;
-const STRENGTH = 0.01;
+const ISOLATION = 400;
+const SUBTRACT = 1;
+const STRENGTH = 0.005;
 const Y_OFFSET = 4;
 
 const NUM_FRAMES = 40;
@@ -39,7 +40,7 @@ function buildScene(overlay) {
       side: THREE.DoubleSide
     });
 
-    const mc = new THREE.MarchingCubes(RESOLUTION, material);
+    const mc = new THREE.MarchingCubes(RESOLUTION, ISOLATION, material);
 
     // create meshes for each frame
     for (let sf = 0; sf < NUM_FRAMES; sf++) {
