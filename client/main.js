@@ -3,7 +3,7 @@ const SPEED = 25;
 
 let screenWidth, screenHeight;
 let stats;
-let camera, scene, renderer, controls, frames;
+let camera, scene, renderer, controls, groups;
 let light, pointLight;
 let time = 0;
 let clock;
@@ -37,15 +37,18 @@ function init() {
   const container = document.getElementById('container');
   const info = document.getElementById("info");
 
+  let query = window.location.search.substring(1);
+  query = query !== '' ? query : 'interpolated_overlays_0002';
+
   const loader = new THREE.GLTFLoader();
-  loader.load('scenes/scene_1.gltf.json',
+  loader.load('scenes/' + query + '.gltf.json',
       gltf => {
         info.innerHTML = '';
         scene.add(gltf.scene);
-        frames = gltf.scene.children;
+        groups = gltf.scene.children;
       },
       xhr => {
-        info.innerHTML = (xhr.loaded / xhr.total * 100) + '% loaded';
+        info.innerHTML = Math.floor(xhr.loaded / xhr.total * 100) + '% loaded';
       },
       error => {
         info.innerHTML = 'Loading scene failed';
@@ -94,12 +97,16 @@ function render() {
   const delta = clock.getDelta();
   time += delta * SPEED;
 
-  if (frames) {
-    frames.forEach(mesh => {
-      mesh.visible = false;
+  if (groups) {
+    groups.forEach(group => {
+      group.children.forEach(mesh => {
+        mesh.visible = false;
+      });
     });
-    const frame = Math.floor(time % frames.length);
-    frames[frame].visible = true;
+    const frame = Math.floor(time % groups[0].children.length);
+    groups.forEach(group => {
+      group.children[frame].visible = true;
+    });
   }
 
   renderer.clear();

@@ -3,8 +3,11 @@ const path = require('path');
 const buildScene = require('./buildScene');
 const exporter = require('./exporter');
 
-const scene = buildScene();
-exporter(scene).then(gltf => {
-  const data = JSON.stringify(gltf);
-  fs.writeFileSync(path.join(__dirname, '../client/scenes/scene_1.gltf.json'), data);
+const overlays = ['interpolated_overlays_0002', 'interpolated_overlays_0070'];
+overlays.forEach(overlay => {
+  const scene = buildScene(overlay);
+  exporter(scene).then(gltf => {
+    const data = JSON.stringify(gltf);
+    fs.writeFileSync(path.join(__dirname, '../client/scenes/' + overlay + '.gltf.json'), data);
+  });
 });
