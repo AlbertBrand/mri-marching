@@ -33,12 +33,7 @@ function buildScene(overlay) {
 
     const path = '../mri/' + overlay + '/' + part.name + '/';
 
-    const material = new THREE.MeshLambertMaterial({
-      color: part.color,
-      transparent: true,
-      opacity: 0.5,
-      side: THREE.DoubleSide
-    });
+    const material = new THREE.MeshStandardMaterial({ color: part.color });
 
     const mc = new THREE.MarchingCubes(RESOLUTION, ISOLATION, material);
 

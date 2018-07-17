@@ -1,5 +1,6 @@
 const MARGIN = 0;
 const SPEED = 25;
+const NUM_FRAMES = 40;
 
 let screenWidth, screenHeight;
 let stats;
@@ -44,6 +45,30 @@ function init() {
   loader.load('scenes/' + query + '.gltf.json',
       gltf => {
         info.innerHTML = '';
+
+        // make transparent with almost no artifacts by doing a 2-pass rendering
+        gltf.scene.children.forEach(group => {
+          group.children.forEach(child => {
+            // first objects for backside vertices...
+            child.material = new THREE.MeshStandardMaterial({
+              color: child.material.color,
+              transparent: true,
+              opacity: 0.5,
+              side: THREE.BackSide,
+            });
+
+            // ... then frontside ones
+            const frontMesh = child.clone();
+            frontMesh.material = new THREE.MeshStandardMaterial({
+              color: child.material.color,
+              transparent: true,
+              opacity: 0.5,
+              side: THREE.FrontSide,
+            });
+            group.add(frontMesh);
+          });
+        });
+
         scene.add(gltf.scene);
         groups = gltf.scene.children;
       },
@@ -103,9 +128,10 @@ function render() {
         mesh.visible = false;
       });
     });
-    const frame = Math.floor(time % groups[0].children.length);
+    const frame = Math.floor(time % NUM_FRAMES);
     groups.forEach(group => {
       group.children[frame].visible = true;
+      group.children[frame + NUM_FRAMES].visible = true;
     });
   }
 
