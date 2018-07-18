@@ -31,7 +31,7 @@ function buildScene(overlay) {
   parts.forEach(part => {
     const group = new THREE.Group();
 
-    const path = '../mri/' + overlay + '/' + part.name + '/';
+    const path = './mri/' + overlay + '/' + part.name + '/';
 
     const material = new THREE.MeshStandardMaterial({ color: part.color });
 
