@@ -3,7 +3,7 @@ const PNG = require('pngjs').PNG;
 require('./setup');
 require('./MarchingCubes');
 
-const RESOLUTION = 40;
+const RESOLUTION = 35;
 const ISOLATION = 400;
 const SUBTRACT = 1;
 const STRENGTH = 0.005;
