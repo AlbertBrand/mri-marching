@@ -3,7 +3,7 @@ const PNG = require('pngjs').PNG;
 require('./setup');
 require('./MarchingCubes');
 
-const RESOLUTION = 40;
+const RESOLUTION = 46;
 const ISOLATION = 400;
 const SUBTRACT = 1;
 const STRENGTH = 0.005;
@@ -54,7 +54,8 @@ function buildScene(overlay) {
               const dividend = si + Y_OFFSET;
               const divisor = NUM_SLICES + 2 * Y_OFFSET;
               const y = dividend / divisor;
-              mc.addBall(x, y, z, STRENGTH, SUBTRACT);
+              // mc.addBall(x, y, z, STRENGTH, SUBTRACT);
+              mc.addBox(x, y, z, 1 / SLICE_WIDTH, 1 / SLICE_HEIGHT, 1 / divisor);
             }
           }
         }

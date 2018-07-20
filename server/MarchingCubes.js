@@ -517,6 +517,24 @@ THREE.MarchingCubes = function ( resolution, isolation, material, enableUvs, ena
 
 	};
 
+	this.addBox = function (bx, by, bz, sx, sy, sz) {
+    const zs = Math.floor(bz * this.size),
+        ys = Math.floor(by * this.size),
+        xs = Math.floor(bx * this.size),
+        max_z = Math.ceil(zs + sz * this.size),
+				max_y = Math.ceil(ys + sy * this.size),
+				max_x = Math.ceil(xs + sx * this.size);
+
+    for (let z = zs; z <= max_z; z++) {
+    	for (let y = ys; y <= max_y; y++) {
+    		for (let x = xs; x <= max_x; x++) {
+          const offset = x + this.size * y + this.size2 * z;
+          this.field[offset] = 1000;
+    		}
+    	}
+    }
+  };
+
 	/////////////////////////////////////
 	// Updates
 	/////////////////////////////////////
